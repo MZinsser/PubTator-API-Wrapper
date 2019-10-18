@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Oct 17 17:25:20 2019
+
+@author: marleezinsser
+"""
+
+from Bio import Entrez
+import requests
+import xml.etree.ElementTree as ET
+from lxml import etree
+import csv
+import json
+import pandas as pd
+import urllib.parse
+import sys
+
+
+
+
+# Searches PUBMED for PMIDs that can be fed back into PTC to retrieve annotated
+#articles
+def search(query, search_place):
+    Entrez.email = "marleejzinsser@gmail.com"
+    m_search = Entrez.esearch(db="pubmed", 
+                            retstart = search_place,
+                            sort="relevance", 
+                            retmax=100,
+                            term=query)
+    results = Entrez.read(m_search)
+    return results
+
+
+def get_annotations(a,b,main_df):  
+    #Use my search function to search for 'heart failure' multiple times through for loop:
+    for x in range (a,b):
+        
+        x=x*100
+        results = search('heart failure', x)
+        
+    #Store the PMIDs
+    #id_list = results['IdList']
+    
+        id_list = results["IdList"]
+        #Put IDs in comma-separated list, suitable format for a get call to 
+        #PubTator Central API
+        ids = ','.join(id_list)
+        
+        
+        
+        #Construct a url from the list of IDs plus the base https components and
+        # format, here format is "pubtator"
+        url = "https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/RESTful/tmTool.cgi/Disease/" + ids + "/pubtator/"
+        
+
+
+        
+        
+        
+       # size = bytes (sys.getsizeof(url))
+        
+       # headers = {'Content-Length': '5'}
+        #Get allows me to speciy Disease as type, enter 100-1000 PMIDS
+        #response = requests.post(url, headers = headers)
+        response = requests.get(url)
+        
+        
+        #Print the responses in (currently) Pubtator Format
+        #print (response.text.encode("utf-8"))
+    
+        #convert the Response to a string in Pubtator Format (henceforth ptf)
+        from io import StringIO
+        ptf_str = response.text
+        ptf_str = StringIO(ptf_str)
+    
+        #Write the ptf string to a csv file
+        #    with open ("output.csv", "w")as f:
+        #        f.write(ptf_str)
+        
+    
+        #Read in csv file and convert to df
+        columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
+        df = pd.DataFrame(columns = columns)
+        #df = pd.read_csv('output.csv', delimiter = '\t',names = columns)
+        df = pd.read_csv(ptf_str, delimiter = '\t', names = columns)
+    
+        
+        main_df = main_df.append(df)
+    
+    del main_df ['Delete1']
+    del main_df ['Delete2']
+    del main_df ['Delete3']
+    return main_df
+
+
+    
+
+
+
+
+def aggregate_results(main_df):
+    main_df['Number of Times Annotated'] = 1 
+
+    aggregation_functions = {'Number of Times Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
+    agg_df= main_df.groupby(['PMID', 'MESH']).aggregate(aggregation_functions)
+
+    agg_df = agg_df.reset_index(drop=True)
+
+    cols = agg_df.columns.tolist()
+    cols = cols [1:] + cols [:1]
+    agg_df=agg_df[cols]
+
+
+
+
