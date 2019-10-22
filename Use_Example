@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 22 14:29:34 2019
+
+@author: marleezinsser
+"""
+import pandas as pd
+import API_Wrapper as wrap
+
+
+#Basic search. Note: This actually searches PUBMED, not PUBTATOR CENTRAL.
+#But its nice to have this function so we can obtain a list of PMIDs to use 
+#with PTC later.
+results = wrap.search('heart failure',1)
+
+
+#Arguments: get_annotations(a,b,query,aggregate)
+    #(a,b) is the range of results to pull (i.e. 10,20 if you want the 10th-20th
+    #results from the pubmed db)
+    
+    #query is the search term
+    
+    #aggregate is set to true or false. If true, articles with the same PMID and
+    #mesh will be grouped together and a count produced for how many were condensed.
+    #If false, the non-aggregated database will be given, which shows every PMID
+    #and MESH ID, including those that repeat in the same article.
+    
+    #NOTE: Selecting PubTator format returns a table, while selecting XML or 
+    #json returns a string
+    
+wrap.get_annotations(1,3, 'heart failure', True, 'PubTator')
+
+xml_str = wrap.get_annotations(1,3, 'heart failure', True, 'XML')
+json_str = wrap.get_annotations(1,3, 'heart failure', True, 'json')
+
+df = wrap.get_annotations(1,3, 'heart failure', False, 'PubTator')
+
+
+
+agg_df = wrap.aggregate_results(df)
