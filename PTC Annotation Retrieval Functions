@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Oct 17 17:25:20 2019
-
 @author: marleezinsser
 """
 
@@ -32,52 +31,44 @@ def search(query, search_place):
     return results
 
 
-def get_annotations(a,b,main_df):  
+def get_annotations(a,b,query,aggregate, m_format):  
+    
+    columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
+    main_df = pd.DataFrame(columns = columns)
+
     #Use my search function to search for 'heart failure' multiple times through for loop:
     for x in range (a,b):
         
         x=x*100
-        results = search('heart failure', x)
+        results = search(query, x)
         
-    #Store the PMIDs
-    #id_list = results['IdList']
+        #Store the PMIDs
     
         id_list = results["IdList"]
         #Put IDs in comma-separated list, suitable format for a get call to 
         #PubTator Central API
         ids = ','.join(id_list)
         
-        
-        
         #Construct a url from the list of IDs plus the base https components and
         # format, here format is "pubtator"
         url = "https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/RESTful/tmTool.cgi/Disease/" + ids + "/pubtator/"
         
 
-
-        
-        
-        
-       # size = bytes (sys.getsizeof(url))
-        
-       # headers = {'Content-Length': '5'}
         #Get allows me to speciy Disease as type, enter 100-1000 PMIDS
         #response = requests.post(url, headers = headers)
         response = requests.get(url)
         
-        
         #Print the responses in (currently) Pubtator Format
         #print (response.text.encode("utf-8"))
-    
+        
         #convert the Response to a string in Pubtator Format (henceforth ptf)
         from io import StringIO
         ptf_str = response.text
-        ptf_str = StringIO(ptf_str)
-    
-        #Write the ptf string to a csv file
-        #    with open ("output.csv", "w")as f:
-        #        f.write(ptf_str)
         
+        if (m_format == 'XML' or m_format == 'json'):
+            return ptf_str
+    
+        ptf_str = StringIO(ptf_str)
     
         #Read in csv file and convert to df
         columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
@@ -91,12 +82,12 @@ def get_annotations(a,b,main_df):
     del main_df ['Delete1']
     del main_df ['Delete2']
     del main_df ['Delete3']
-    return main_df
-
-
     
-
-
+    if (aggregate == True):
+        aggregate_results(main_df)
+    
+    print (main_df)
+    return main_df
 
 
 def aggregate_results(main_df):
@@ -110,7 +101,4 @@ def aggregate_results(main_df):
     cols = agg_df.columns.tolist()
     cols = cols [1:] + cols [:1]
     agg_df=agg_df[cols]
-
-
-
-
+    return agg_df
