@@ -39,8 +39,8 @@ def get_annotations(a,b,query,aggregate, m_format):
     #Use my search function to search for 'heart failure' multiple times through for loop:
     for x in range (a,b):
         
-        x=x*100
-        results = search(query, x)
+        result_num = x*100
+        results = search(query, result_num)
         
         #Store the PMIDs
     
@@ -67,18 +67,18 @@ def get_annotations(a,b,query,aggregate, m_format):
         
         if (m_format == 'XML' or m_format == 'json'):
             return ptf_str
+        else:
+            ptf_str = StringIO(ptf_str)
     
-        ptf_str = StringIO(ptf_str)
-    
-        #Read in csv file and convert to df
-        columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
-        df = pd.DataFrame(columns = columns)
-        #df = pd.read_csv('output.csv', delimiter = '\t',names = columns)
-        df = pd.read_csv(ptf_str, delimiter = '\t', names = columns)
+            #Read in csv file and convert to df
+            columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
+            df = pd.DataFrame(columns = columns)
+            #df = pd.read_csv('output.csv', delimiter = '\t',names = columns)
+            df = pd.read_csv(ptf_str, delimiter = '\t', names = columns)
     
         
-        main_df = main_df.append(df)
-    
+            main_df = main_df.append(df)
+        
     del main_df ['Delete1']
     del main_df ['Delete2']
     del main_df ['Delete3']
@@ -91,9 +91,9 @@ def get_annotations(a,b,query,aggregate, m_format):
 
 
 def aggregate_results(main_df):
-    main_df['Number of Times Annotated'] = 1 
+    main_df['Number_of_Times_Annotated'] = 1 
 
-    aggregation_functions = {'Number of Times Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
+    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
     agg_df= main_df.groupby(['PMID', 'MESH']).aggregate(aggregation_functions)
 
     agg_df = agg_df.reset_index(drop=True)
@@ -101,4 +101,6 @@ def aggregate_results(main_df):
     cols = agg_df.columns.tolist()
     cols = cols [1:] + cols [:1]
     agg_df=agg_df[cols]
+    
+    agg_df['Disease'] = agg_df['Disease'].str.lower()
     return agg_df
