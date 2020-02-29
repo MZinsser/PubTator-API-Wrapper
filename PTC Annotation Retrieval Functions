@@ -108,7 +108,30 @@ def aggregate_results(main_df):
     main_df['Number_of_Times_Annotated'] = 1 
 
     aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
-    agg_df= main_df.groupby(['PMID', 'MESH']).aggregate(aggregation_functions)
+    agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
+    #agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
+   # agg_df= main_df.groupby(['MESH', 'Disease', 'PMID']).aggregate(aggregation_functions)
+
+    agg_df = agg_df.reset_index(drop=True)
+
+    cols = agg_df.columns.tolist()
+    cols = cols [1:] + cols [:1]
+    agg_df=agg_df[cols]
+    
+    agg_df['Disease'] = agg_df['Disease'].str.lower()
+    
+    agg_df = aggregate_results2(agg_df)
+    return agg_df
+
+
+
+def aggregate_results2(main_df):
+   # main_df['Number_of_Times_Annotated'] = 1 
+
+    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
+    agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
+    #agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
+   # agg_df= main_df.groupby(['MESH', 'Disease', 'PMID']).aggregate(aggregation_functions)
 
     agg_df = agg_df.reset_index(drop=True)
 
