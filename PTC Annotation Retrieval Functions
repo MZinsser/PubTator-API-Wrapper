@@ -92,9 +92,9 @@ def get_annotations(a,b,query,aggregate, m_format):
         
             main_df = main_df.append(df)
         
-    #del main_df ['Delete1']
-   # del main_df ['Delete2']
-    #del main_df ['Delete3']
+    del main_df ['Delete1']
+    del main_df ['Delete2']
+    del main_df ['Delete3']
     
     if (aggregate == True):
         aggregate_results(main_df)
@@ -141,3 +141,4 @@ def aggregate_results2(main_df):
     
     agg_df['Disease'] = agg_df['Disease'].str.lower()
     return agg_df
+
