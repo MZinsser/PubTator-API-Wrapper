@@ -13,6 +13,10 @@ import API_Wrapper as wrap
 #Use this if you just want a list of PMIDs.
 results = wrap.search('heart failure',1)
 
+id_list = results["IdList"]
+        print ("searching for: ")
+        print (len(id_list)," ids")
+
 
 #Arguments: get_annotations(a,b,query,aggregate)
     #(a,b) is the range of results to pull 
