@@ -2,7 +2,7 @@
 Functions to retrieve and process annotations with PubTator API
 
 
-These are functions that I wrote to help me use the PubMed and PubTator Central APIs.
+This is code that I wrote to help me use the PubMed and PubTator Central APIs.
 
 My main use case for this "wrapper" was to take a single search term (e.g. "heart failure") and automatically create
 a dataframe that contains each resulting PMID from PubMed, along with each Disease annotated in that PMID by PubTator Central,
