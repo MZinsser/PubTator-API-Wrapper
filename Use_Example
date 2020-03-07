@@ -9,16 +9,13 @@ import pandas as pd
 import API_Wrapper as wrap
 
 
-#Basic search. Note: This actually searches PUBMED, not PUBTATOR CENTRAL.
-#But its nice to have this function so we can obtain a list of PMIDs to use 
-#with PTC later.
+#Basic search. This searches PUBMED, not PUBTATOR CENTRAL.
+#Use this if you just want a list of PMIDs.
 results = wrap.search('heart failure',1)
 
 
 #Arguments: get_annotations(a,b,query,aggregate)
-    #(a,b) is the range of results to pull (i.e. 10,20 if you want the 10th-20th
-    #results from the pubmed db)
-    
+    #(a,b) is the range of results to pull 
     #query is the search term
     
     #aggregate is set to true or false. If true, articles with the same PMID and
