@@ -8,7 +8,6 @@ Created on Thu Oct 17 17:25:20 2019
 from Bio import Entrez
 import requests
 import xml.etree.ElementTree as ET
-from lxml import etree
 import csv
 import json
 import pandas as pd
@@ -18,18 +17,8 @@ import sys
 
 
 
-#My "search" function searches PUBMED for PMIDs that can be fed back into PTC to retrieve annotated
+# Searches PUBMED for PMIDs that can be fed back into PTC to retrieve annotated
 #articles
-    #Parameters:
-    #query is your search term, (e.g. "heart failure") in string format
-    #search_place is an integer, defining where in the list of results you want to start your
-    #search. i.e. if you search "heart failure", you get 200k+ results in order. Setting
-    #search_place to 104 would return the 104th result, etc.)
-    
-    #I didn't set any of the other params for Entrez.esearch bc. I had them constant whenever I 
-    #was searching pubmed. More documentation on these is available in the biopython documentation
-    #adjust retmax to the number of articles you want to search, mindate, maxdate, etc.
-
 def search(query, search_place):
     Entrez.email = "marleejzinsser@gmail.com"
     m_search = Entrez.esearch(db="pubmed", 
@@ -37,48 +26,18 @@ def search(query, search_place):
                             sort="relevance", 
                             retmax=100,
                             mindate = 2010,
-                            maxdate = 2018,
+                            maxdate = 2019,
                             term=query)
     results = Entrez.read(m_search)
     return results
 
- #To store/print the PMIDs
-        id_list = results["IdList"]
-        print ("searching for: ")
-        print (len(id_list)," ids")
-
-
-
-
-#---------------------------------------------------------------------------------------
-#BRINGING PUBTATOR CENTRAL INTO THE PICTURE
-#---------------------------------------------------------------------------------------
-#get_annotations functions calls both pubmed AND pubtator central APIs... I tried to
-#streamline things so that you can go from search term to PTC annotations without
-#interacting with multiple APIs.
-#This is really geared toward DISEASE annotations but could be easily modified for 
-#gene, species, etc. annotations
-#There are also functions in here that are useful in general for working with just the PMIDs
 
 def get_annotations(a,b,query,aggregate, m_format, m_concept):  
-  #a and b is the range you would like to search. But you get 100 results for each search.. so for example,
-    #if you were to input a,b = 0,1, you would get results 1-100. To prevent confusion, the function will output
-    #to the console where it is starting, and which PMIDs it is pulling each time you run this function.
-   #query is your search term
-    #aggregate is whether or not you want the results to be "aggregated" using the functions I define later on
-    #m_format is the output format you want. XML, json, or Pubtator Central format. I recommend Pubtator Central
-    #format if you want the most out of this script
     
-    
-    #Construct a df that is going to hold the results. 
-    #The way this is set up, results come out as a df with the PMID, every disease annotated, and the corresponding
-    #MESH term for that PMID in a 3-column table. Again, this is easily modifiable.
-    
-    columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
+    columns = ['PMID', 'Delete1', 'Delete2', 'Entity','Delete3', 'MESH']
     main_df = pd.DataFrame(columns = columns)
 
-    
-    #Here we use my search function to search for the search term multiple times through for loop:
+    #Use my search function to search for 'heart failure' multiple times through for loop:
     for x in range (a,b):
         if a == 0:
             result_num = 0
@@ -88,6 +47,7 @@ def get_annotations(a,b,query,aggregate, m_format, m_concept):
         results = search(query, result_num)
         
         #Store the PMIDs
+    
         id_list = results["IdList"]
         print ("searching for: ")
         print (len(id_list)," ids")
@@ -98,33 +58,32 @@ def get_annotations(a,b,query,aggregate, m_format, m_concept):
         print ("searching for id(s): ", ids)
         
         
-        
         #Construct a url from the list of IDs plus the base https components and
         # format, here format is "pubtator"
-
+        oldurl = "https://www.ncbi.nlm.nih.gov/CBBresearch/Lu/Demo/RESTful/tmTool.cgi/Disease/" + ids + "/pubtator/"
         
         url = "https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/pubtator?pmids=" + ids + "&concepts=" + m_concept
-        
+
+        #url = "https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/export/pubtator?pmids=28483577&concepts=disease"
+
+        #Get allows me to speciy Disease/Chem/etc as type, enter 100-1000 PMIDS
+        #response = requests.post(url, headers = headers)
         response = requests.get(url)
         
-        #OPTIONAL: print the responses in (currently) Pubtator Format
+        #Print the responses in (currently) Pubtator Format
         #print (response.text.encode("utf-8"))
         
         #convert the Response to a string in Pubtator Format (henceforth ptf)
         from io import StringIO
         ptf_str = response.text
         
-        #I haven't fully worked out using XML or json formats, since ptf ended up being the
-        #best for my purposes. So if you requested xml or json format, the results will just be
-        #returned as a string right now... One could modify this to save as xml and json formats
-        #and then parse them later on 
-        
         if (m_format == 'XML' or m_format == 'json'):
             return ptf_str
         else:
             ptf_str = StringIO(ptf_str)
     
-            columns = ['PMID', 'Delete1', 'Delete2', 'Disease','Delete3', 'MESH']
+            #Read in csv file and convert to df
+            columns = ['PMID', 'Delete1', 'Delete2', 'Entity','Delete3', 'MESH']
             df = pd.DataFrame(columns = columns)
             #df = pd.read_csv('output.csv', delimiter = '\t',names = columns)
             df = pd.read_csv(ptf_str, delimiter = '\t', names = columns)
@@ -132,7 +91,6 @@ def get_annotations(a,b,query,aggregate, m_format, m_concept):
         
             main_df = main_df.append(df)
         
-     
     del main_df ['Delete1']
     del main_df ['Delete2']
     del main_df ['Delete3']
@@ -144,17 +102,14 @@ def get_annotations(a,b,query,aggregate, m_format, m_concept):
     return main_df
 
 
-#Aggregation functions
+
 def aggregate_results(main_df):
-    
-    #We make an extra column of ones, so later we can tally up all the times a duplicate annotation occured and keep
-    # a count of how many times each term was annotated per document
     main_df['Number_of_Times_Annotated'] = 1 
-    
-    #For my purposes, I wanted each row to be a unique combination of PMID, MESH, and Disease. So we have
-    #to remove rows that are exact duplicates, which we do here:
-    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
-    agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
+
+    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Entity':'first'}
+    agg_df= main_df.groupby(['PMID','MESH', 'Entity']).aggregate(aggregation_functions)
+    #agg_df= main_df.groupby(['PMID','MESH', 'Entity']).aggregate(aggregation_functions)
+   # agg_df= main_df.groupby(['MESH', 'Entity', 'PMID']).aggregate(aggregation_functions)
 
     agg_df = agg_df.reset_index(drop=True)
 
@@ -162,8 +117,7 @@ def aggregate_results(main_df):
     cols = cols [1:] + cols [:1]
     agg_df=agg_df[cols]
     
-    #lowercase all the disease names so that its uniform
-    agg_df['Disease'] = agg_df['Disease'].str.lower()
+    agg_df['Entity'] = agg_df['Entity'].str.lower()
     
     agg_df = aggregate_results2(agg_df)
     return agg_df
@@ -173,15 +127,17 @@ def aggregate_results(main_df):
 def aggregate_results2(main_df):
    # main_df['Number_of_Times_Annotated'] = 1 
 
-    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Disease':'first'}
-    agg_df= main_df.groupby(['PMID','MESH', 'Disease']).aggregate(aggregation_functions)
-  
+    aggregation_functions = {'Number_of_Times_Annotated': 'sum', 'PMID':'first', 'MESH':'first', 'Entity':'first'}
+    agg_df= main_df.groupby(['PMID','MESH', 'Entity']).aggregate(aggregation_functions)
+    #agg_df= main_df.groupby(['PMID','MESH', 'Entity']).aggregate(aggregation_functions)
+   # agg_df= main_df.groupby(['MESH', 'Entity', 'PMID']).aggregate(aggregation_functions)
+
     agg_df = agg_df.reset_index(drop=True)
 
     cols = agg_df.columns.tolist()
     cols = cols [1:] + cols [:1]
     agg_df=agg_df[cols]
     
-    agg_df['Disease'] = agg_df['Disease'].str.lower()
+    agg_df['Entity'] = agg_df['Entity'].str.lower()
     return agg_df
 
